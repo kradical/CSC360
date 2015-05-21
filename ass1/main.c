@@ -14,7 +14,7 @@ void prompt_user(char **command, char **current_directory);
 void parse_command(char *command, char *current_directory);
 void process_command(char **commandArray, int *arguements, char *current_directory);
 void command_arbitrary(char **commandArray, int *arguements);
-void command_change_directory(char **commandArray, int *arguements, char *current_directory);
+void command_change_directory(char **commandArray, int *arguements);
 void command_background_execution(char **commandArray, int *arguements, char *current_directory);
 
 /*
@@ -109,7 +109,7 @@ void command_arbitrary(char **commandArray, int *arguements){
     Tries absolute path first and if that doesn't work allocates a buffer for 
     new path and concatenates current path with the arguement.
 */
-void command_change_directory(char **commandArray, int *arguements, char *current_directory){
+void command_change_directory(char **commandArray, int *arguements){
     if(*arguements > 2){
         fprintf(stderr, "Too many arguements. cd accepts 1 pathname\n");
     }else if(*arguements == 2){
@@ -128,32 +128,14 @@ void command_change_directory(char **commandArray, int *arguements, char *curren
             if(result == 0){
                 return;
             }else if(result == -1){
-                char *new_directory = malloc(strlen(current_directory)+strlen(commandArray[1]) + 1);
-                
-                if(new_directory == NULL){
-                    perror("Error allocating memory");
-                    exit(1);
-                }
-                
-                strcpy(new_directory, current_directory);
-                strcat(new_directory, commandArray[1] );               
-
-                result = chdir(new_directory);
-                
-                free(new_directory);
-                new_directory = NULL;
-    
-                if(result == 0){
-                    return;
-                }else if(result == -1){
-                    fprintf(stderr, "Could not change directory invalid path\n");
-                }
+                fprintf(stderr, "Could not change directory invalid path\n");
             }
         }        
     }else if(*arguements == 1){
         char *home = getenv("HOME");            
         int result = chdir(home);
-        if(result == 0){
+        
+	    if(result == 0){
             return;
         }else if(result == -1){
             fprintf(stderr, "Could not change directory HOME environment variable error\n");
@@ -171,15 +153,13 @@ void command_background_execution(char **commandArray, int *arguements, char *cu
     return;
 }
 /*
-    process_command looks the command and arguements and calls the appropriate
+    process_command takes the command and arguements and calls the appropriate
     function to deal with it. 
-    Shell takes commands:
-        ls
 */
 void process_command(char **commandArray, int *arguements, char *current_directory){
     char *command = commandArray[0];
     if(strcmp(command, "cd") == 0){
-        command_change_directory(commandArray, arguements, current_directory);
+        command_change_directory(commandArray, arguements);
     }else if(strcmp(command, "bg") == 0){
         command_background_execution(commandArray, arguements, current_directory);
     }else{
