@@ -10,12 +10,54 @@
 #define INITIAL_PATH_SIZE 128
 #define INITIAL_COMMAND_BUFFER_SIZE 8
 
-void prompt_user(char **command, char **current_directory);
+char *try_malloc(int size);
+char *get_prompt();
 void parse_command(char *command, char *current_directory);
 void process_command(char **commandArray, int *arguements, char *current_directory);
 void command_arbitrary(char **commandArray, int *arguements);
 void command_change_directory(char **commandArray, int *arguements);
 void command_background_execution(char **commandArray, int *arguements, char *current_directory);
+
+/*
+    try_malloc, helpful function for mallocing char* with error checking
+*/
+char *try_malloc(int size){
+    char *p = malloc(size); 
+    if(p == NULL){
+        perror("Error allocating memory");
+        exit(1);
+    }
+    return p;
+}
+
+/*
+    get_prompt creates a prompt for the RSI out of the current directory
+    and RSI: >
+*/
+char *get_prompt(){
+    int path_size = INITIAL_PATH_SIZE;
+    char *current_directory = try_malloc(sizeof(char) * path_size);
+    char *prompt = NULL;
+    char *prompt1 = "RSI: ";
+    char *prompt2 = " >";
+    
+    while(getcwd(current_directory, path_size) == NULL){
+            path_size *= 2;
+            current_directory = realloc(current_directory, sizeof(char) * path_size);
+            
+            if(current_directory == NULL){
+                perror("Error allocating memory");
+                exit(1);
+            }
+    }
+    
+    prompt = try_malloc(strlen(current_directory)+strlen(prompt1)+strlen(prompt2)+1);
+    strcpy(prompt, prompt1);
+    strcat(prompt, current_directory);
+    strcat(prompt, prompt2);    
+                
+    return prompt;
+}
 
 /*
     parse_command takes a string array and places each arguement into one
@@ -36,6 +78,7 @@ void parse_command(char *command, char *current_directory){
     }
 
     token = strtok(command, " ");
+	
 
     while(token != NULL){
         
@@ -84,7 +127,7 @@ void command_arbitrary(char **commandArray, int *arguements){
     char *argv[*arguements];
     int i;
     int status;
-
+	
     for(i=0;i<*arguements;i++){
         argv[i] = commandArray[i];
     }
@@ -148,8 +191,9 @@ void command_change_directory(char **commandArray, int *arguements){
     command_background_execution
 */
 void command_background_execution(char **commandArray, int *arguements, char *current_directory){
-    
-    printf("BACKGROUND EXECUTION");    
+	//char **new_command = commandArray+1;
+	//*arguements--;
+	//command_arbitrary(new_command, arguements);   
     return;
 }
 /*
@@ -169,46 +213,17 @@ void process_command(char **commandArray, int *arguements, char *current_directo
     return;
 }
 
-/*
-    prompt_user with readline, dynamically allocates space for current working
-    directory.
-*/
-void prompt_user(char **command, char **current_directory){
-    int path_size = INITIAL_PATH_SIZE;
-    *current_directory = malloc(sizeof(char) * path_size);
-    
-    if(*current_directory == NULL){
-        perror("Error allocating memory");
-        exit(1);
-    }
-    
-    while(getcwd(*current_directory, path_size) == NULL){
-            path_size *= 2;
-            printf("%d\n", path_size);
-            *current_directory = realloc(*current_directory, sizeof(char) * path_size);
-            
-            if(*current_directory == NULL){
-                perror("Error allocating memory");
-                exit(1);
-            }
-    }
-
-    printf("RSI: %s >", *current_directory);
-    *command = readline(NULL);                  
-
-    return;
-}
-
 int main(void){
     int active = 1;
     char *command = NULL;
-    char *current_directory = NULL;
+    char *prompt = NULL;
 
     while(active){
-        prompt_user(&command, &current_directory);
-        parse_command(command, current_directory);
-        free(current_directory);
-        current_directory = NULL;
+        prompt = get_prompt();
+        command = readline(prompt);  
+        //parse_command(command, current_directory);
+        //free(current_directory);
+        //current_directory = NULL;
         free(command);
         command = NULL;
     }
@@ -216,3 +231,5 @@ int main(void){
     printf("\n");
     return 0;
 }
+
+//TODO append NULL to array instead of copying, parse command should return number of arguements!!!!
