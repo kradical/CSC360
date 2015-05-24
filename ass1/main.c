@@ -13,7 +13,7 @@
 
 typedef struct process{
     pid_t pid;
-	int arguements;
+    int arguements;
     char *processname;
     char **processargsv;
     struct process *next;
@@ -26,11 +26,11 @@ void command_arbitrary(char **commandArray, int arguements, PROCESS **head);
 void command_change_directory(char **commandArray, int arguements);
 
 /*
-
+   delete_process(pid_t pid) 
 */
 void delete_process(pid_t pid){
-	printf("DELETE");
-	return;
+    printf("DELETE");
+    return;
 }
 /*
 
@@ -38,7 +38,7 @@ void delete_process(pid_t pid){
 void add_process(PROCESS **head, pid_t pid, char **commands, int arguements){
 	int i = 0;	
 	if(*head == NULL){	
-		(*head) = try_malloc(sizeof(PROCESS));
+	    (*head) = try_malloc(sizeof(PROCESS));
 		(*head)->pid = pid;
 		(*head)->arguements = arguements;
 		(*head)->processname = try_malloc(sizeof(commands[0]));
@@ -191,11 +191,10 @@ void command_arbitrary(char **commandArray, int arguements, PROCESS **head){
     }    
     pid_t pid = fork();    
     if(pid == 0){
-		eresult = execvp(commands[0], commands);        
-		if(eresult < 0){
+	if(execvp(commands[0], commands) == -1){
             perror("Error on execv");
-			if(background == 1)		
-				exit(1);
+		if(background == 1)		
+		exit(1);
         }
     }else if(pid < 0){
         perror("Failed to fork process");
@@ -204,7 +203,7 @@ void command_arbitrary(char **commandArray, int arguements, PROCESS **head){
         add_process(head, pid, commands, arguements-1);   
 	}
 	if(background == 0){
-    	wait(&status);
+    	    wait(&status);
 	}
     return;
 }
