@@ -13,7 +13,7 @@
 
 typedef struct process{
     pid_t pid;
-    int arguements;
+    int arguments;
     char *processname;
     char **processargsv;
     struct process *next;
@@ -22,17 +22,17 @@ typedef struct process{
 PROCESS *head = NULL;
 
 void delete_process(pid_t pid);
-void add_process(pid_t pid, char **commands, int arguements);
+void add_process(pid_t pid, char **commands, int arguments);
 void print_process_list();
 void delete_list();
 
 void *try_malloc(int size);
 char *get_prompt();
 int parse_command(char *command, char ***p);
-void command_arbitrary(char **command_array, int arguements);
-void command_change_directory(char **command_array, int arguements);
+void command_arbitrary(char **command_array, int arguments);
+void command_change_directory(char **command_array, int arguments);
 void child_sig_handler(int signal_number);
-void command_signal_process(char **command_array, int arguements, int signum);
+void command_signal_process(char **command_array, int arguments, int signum);
 
 /*
     try_malloc, helpful function for mallocing with error checking
@@ -58,7 +58,7 @@ void delete_process(pid_t pid){
     while(temp != NULL){
         if(pid == temp->pid){
             printf("%d:\t%s\t", temp->pid, temp->processname);
-            for(i=1; i < temp->arguements; i++){
+            for(i=1; i < temp->arguments; i++){
                 printf("%s ", temp->processargsv[i]);
             }		
             printf(" has terminated.\n");
@@ -82,20 +82,20 @@ void delete_process(pid_t pid){
 /* 
     add_process adds a process to the process linked list. Adds it to the head 
     if null or iterates to the end of the list and adds it. A process stores 
-    information about PID, executable name, and arguements passed.
+    information about PID, executable name, and arguments passed.
 */
-void add_process(pid_t pid, char **commands, int arguements){
+void add_process(pid_t pid, char **commands, int arguments){
     int i = 0;	
     if(head == NULL){	
         head = try_malloc(sizeof(PROCESS));
         head->pid = pid;
-        head->arguements = arguements;
+        head->arguments = arguments;
         
         head->processname = try_malloc(sizeof(commands[0]));
         strcpy(head->processname, commands[0]);
         
         head->processargsv = try_malloc(sizeof(commands));		
-        for(i=0; i<arguements; i++){
+        for(i=0; i<arguments; i++){
             head->processargsv[i] = try_malloc(sizeof(commands[i]));
             strcpy(head->processargsv[i], commands[i]);
         }
@@ -103,13 +103,13 @@ void add_process(pid_t pid, char **commands, int arguements){
     }else{
         PROCESS *temp = try_malloc(sizeof(PROCESS));
         temp->pid = pid;
-        temp->arguements = arguements;
+        temp->arguments = arguments;
         
         temp->processname = try_malloc(sizeof(commands[0]));
         strcpy(temp->processname, commands[0]);
         
         temp->processargsv = try_malloc(sizeof(commands));		
-        for(i=0; i<arguements; i++){
+        for(i=0; i<arguments; i++){
             temp->processargsv[i] = try_malloc(sizeof(commands[i]));
             strcpy(temp->processargsv[i], commands[i]);
         }
@@ -132,10 +132,10 @@ void print_process_list(){
     PROCESS *temp = head;
     int i = 0;
     int jobs = 0;
-    printf("PID:\tcommand\targuements\n");
+    printf("PID:\tcommand\targuments\n");
     while(temp != NULL){
         printf("%d:\t%s\t", temp->pid, temp->processname);
-        for(i=1; i < temp->arguements; i++){
+        for(i=1; i < temp->arguments; i++){
             printf("%s ", temp->processargsv[i]);
         }		
         printf("\n");
@@ -153,9 +153,15 @@ void print_process_list(){
 */
 void delete_list(){
     PROCESS *temp;
+    int result = 0;
     while(head != NULL){
         temp = head;
         head = head->next;
+        /*kills all background processes on quitting the shell*/
+        result = kill(temp->pid, SIGKILL);        
+        if(result == -1){
+            perror("Error sending signal to process");
+        }
         free(temp);
         temp = NULL;
     }    
@@ -199,19 +205,19 @@ char *get_prompt(){
     parse_command takes a string array and places each arguement into one
     element. It does so doubling the size when it fills up and 
     dynamically allocating space for each string which means every arguement
-    can be as long as the user likes and can accept as many arguements as the
+    can be as long as the user likes and can accept as many arguments as the
     user allows.
 */
 int parse_command(char *command, char ***p){ 
     char *token = NULL;
     int command_array_size = INITIAL_COMMAND_BUFFER_SIZE;
-    int arguements = 0;   
+    int arguments = 0;   
     char **command_array = try_malloc(sizeof(char*) * command_array_size);
 
     token = strtok(command, " \t\n");
 
     while(token != NULL){  
-        if(arguements == command_array_size - 1){
+        if(arguments == command_array_size - 1){
             command_array_size *= 2;
             command_array = realloc(command_array, sizeof(char*) * command_array_size);
             if(command_array == NULL){
@@ -219,28 +225,28 @@ int parse_command(char *command, char ***p){
                 exit(1);
             }
         }
-        command_array[arguements] = try_malloc((strlen(token)+1) * sizeof(char));    
+        command_array[arguments] = try_malloc((strlen(token)+1) * sizeof(char));    
 
-        strcpy(command_array[arguements], token);
+        strcpy(command_array[arguments], token);
 
-        arguements++;
+        arguments++;
         token = strtok(NULL, " \t\n");
     }
-    command_array[arguements] = NULL;
+    command_array[arguments] = NULL;
     *p = command_array;
-    return arguements;
+    return arguments;
 }
 
 /*
-    command_arbitrary takes the user provided arguements and searches the path
+    command_arbitrary takes the user provided arguments and searches the path
     for a binary with the same name. If fork() or execv() has an error it will 
     print to stderr. Also handles background execution using a background flag.
 */
-void command_arbitrary(char **command_array, int arguements){
+void command_arbitrary(char **command_array, int arguments){
     char **commands;
     int background = 0;
     if(strcmp(command_array[0], "bg") == 0){
-        if(arguements > 1){
+        if(arguments > 1){
             commands = command_array + 1;
             background = 1;   
         }else{
@@ -262,7 +268,7 @@ void command_arbitrary(char **command_array, int arguements){
     }else if(pid < 0){
         perror("Failed to fork process");
     }else if(background == 1){
-        add_process(pid, commands, arguements-1);   
+        add_process(pid, commands, arguments-1);   
     }
 	if(background == 0){
         wait(NULL);
@@ -271,14 +277,14 @@ void command_arbitrary(char **command_array, int arguements){
 }
 
 /*
-    command_change_directory prints errors for more than 2 arguements, invalid 
+    command_change_directory prints errors for more than 2 arguments, invalid 
     path and invalid HOME variable. Uses chdir() to change cwd to the path 
     given. 
 */
-void command_change_directory(char **command_array, int arguements){
-    if(arguements > 2){
+void command_change_directory(char **command_array, int arguments){
+    if(arguments > 2){
         fprintf(stderr, "cd:    usage:  cd [dir]\n");
-    }else if(arguements == 2){
+    }else if(arguments == 2){
         if(strcmp(command_array[1], "~") == 0){
             char *home = getenv("HOME");
 
@@ -294,7 +300,7 @@ void command_change_directory(char **command_array, int arguements){
                 fprintf(stderr, "Could not change directory invalid path\n");
             }
         }        
-    }else if(arguements == 1){
+    }else if(arguments == 1){
         char *home = getenv("HOME");
 	    if(chdir(home) == 0){
             return;
@@ -310,15 +316,15 @@ void command_change_directory(char **command_array, int arguements){
     child process with PID provided. Also prevents user from affecting the 
     shell
 */
-void command_signal_process(char **command_array, int arguements, int signum){
-    if(arguements == 2){
+void command_signal_process(char **command_array, int arguments, int signum){
+    if(arguments == 2){
         pid_t pid = (pid_t)strtol(command_array[1], NULL, 10);
         if(pid == 0){
             fprintf(stderr, "[SIGNAL]: usage: [kill|pause|resume] [PID]\n");
         }else{      
             int result = kill(pid, signum);        
             if(result == -1){
-                perror("Error sending ");
+                perror("Error sending signal to process");
             }
         }
     }else{
@@ -347,7 +353,7 @@ int main(void){
     
     int active = 1;
     int i = 0;  
-    int arguements = 0;  
+    int arguments = 0;  
     char *command = NULL;
     char *prompt = NULL;
     char **command_array = NULL;
@@ -363,25 +369,27 @@ int main(void){
             active = 0;
             break;
         }  
-        arguements = parse_command(command, &command_array);
+	
+        arguments = parse_command(command, &command_array);
 
         free(command);
         command = NULL;
-        if(arguements > 0){
+
+        if(arguments > 0){
             if(strcmp(command_array[0], "cd") == 0){
-                command_change_directory(command_array, arguements);
+                command_change_directory(command_array, arguments);
             }else if(strcmp(command_array[0], "kill") == 0){
-                command_signal_process(command_array, arguements, SIGKILL);
+                command_signal_process(command_array, arguments, SIGKILL);
             }else if(strcmp(command_array[0], "pause") == 0){
-                command_signal_process(command_array, arguements, SIGSTOP);
+                command_signal_process(command_array, arguments, SIGSTOP);
             }else if (strcmp(command_array[0], "resume") == 0){
-                command_signal_process(command_array, arguements, SIGCONT);
+                command_signal_process(command_array, arguments, SIGCONT);
             }else{
-                command_arbitrary(command_array, arguements);
+                command_arbitrary(command_array, arguments);
             }
         }
 
-        for(i=0; i<arguements; i++){
+        for(i=0; i<arguments; i++){
             free(command_array[i]);
             command_array[i] = NULL;
         }
