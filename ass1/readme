@@ -2,7 +2,7 @@ Konrad Schultz
 V00761540
 May 24, 2015
 
--Run this program by calling Make in a shell and then executing ./RSI
+-Run this program by calling make in a shell and then executing ./RSI
 -Compatible with any executable on your path as well as cd and cd ~
 -Preface a command with bg to run it in the background
 -Use bglist to list all the current background processes
