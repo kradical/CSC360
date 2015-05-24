@@ -1,0 +1,14 @@
+Konrad Schultz
+V00761540
+May 24, 2015
+
+-Run this program by calling Make in a shell and then executing ./RSI
+-Compatible with any executable on your path as well as cd and cd ~
+-Preface a command with bg to run it in the background
+-Use bglist to list all the current background processes
+
+-Works with any filesystem even without PATH_MAX defined or a filepath limit
+-Works with any number of arguments and any length for each argument
+
+***BONUS***
+-Try [kill|pause|resume] [PID] to kill or pause or resume a background process
