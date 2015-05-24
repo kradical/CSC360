@@ -19,19 +19,23 @@ typedef struct process{
     struct process *next;
 }PROCESS;
 
+PROCESS *head = NULL;
+
 void delete_process(pid_t pid);
-void add_process(PROCESS **head, pid_t pid, char **commands, int arguements);
-void print_process_list(PROCESS *head);
+void add_process(pid_t pid, char **commands, int arguements);
+void print_process_list();
+void delete_list();
 
 void *try_malloc(int size);
 char *get_prompt();
 int parse_command(char *command, char ***p);
-void command_arbitrary(char **command_array, int arguements, PROCESS **head);
+void command_arbitrary(char **command_array, int arguements);
 void command_change_directory(char **command_array, int arguements);
-void child_sig_handler(int signal_number)
+void child_sig_handler(int signal_number);
+void command_signal_process(char **command_array, int arguements, int signum);
 
 /*
-    try_malloc, helpful function for mallocing char* with error checking
+    try_malloc, helpful function for mallocing with error checking
 */
 void *try_malloc(int size){
     void *p = malloc(size); 
@@ -43,45 +47,77 @@ void *try_malloc(int size){
 }
 
 /*
-   delete_process
+    delete_process is called by SGCHLD signal handler asynchronously. Is called 
+    when a child terminates. This deletes the PID from the background list and
+    frees the memory associated with it.
 */
 void delete_process(pid_t pid){
-    printf("DELETE");
+    PROCESS *temp = head;
+    PROCESS *prev = head;
+    int i;
+    while(temp != NULL){
+        if(pid == temp->pid){
+            printf("%d:\t%s\t", temp->pid, temp->processname);
+            for(i=1; i < temp->arguements; i++){
+                printf("%s ", temp->processargsv[i]);
+            }		
+            printf(" has terminated.\n");
+            if(temp == head){
+                free(head);
+                head = NULL;
+                break;
+            }else{
+                prev->next = temp->next;
+                free(temp);
+                temp = NULL;
+                break;
+            }
+        }
+        prev = temp;
+        temp = temp->next;
+    }   
     return;
 }
 
-/*
-   add_process
+/* 
+    add_process adds a process to the process linked list. Adds it to the head 
+    if null or iterates to the end of the list and adds it. A process stores 
+    information about PID, executable name, and arguements passed.
 */
-void add_process(PROCESS **head, pid_t pid, char **commands, int arguements){
+void add_process(pid_t pid, char **commands, int arguements){
     int i = 0;	
-    if(*head == NULL){	
-        (*head) = try_malloc(sizeof(PROCESS));
-        (*head)->pid = pid;
-        (*head)->arguements = arguements;
-        (*head)->processname = try_malloc(sizeof(commands[0]));
-        strcpy((*head)->processname, commands[0]);
-        (*head)->processargsv = try_malloc(sizeof(commands));		
+    if(head == NULL){	
+        head = try_malloc(sizeof(PROCESS));
+        head->pid = pid;
+        head->arguements = arguements;
+        
+        head->processname = try_malloc(sizeof(commands[0]));
+        strcpy(head->processname, commands[0]);
+        
+        head->processargsv = try_malloc(sizeof(commands));		
         for(i=0; i<arguements; i++){
-            (*head)->processargsv[i] = try_malloc(sizeof(commands[i]));
-            strcpy((*head)->processargsv[i], commands[i]);
+            head->processargsv[i] = try_malloc(sizeof(commands[i]));
+            strcpy(head->processargsv[i], commands[i]);
         }
-        (*head)->next = NULL;
+        head->next = NULL;
     }else{
         PROCESS *temp = try_malloc(sizeof(PROCESS));
         temp->pid = pid;
         temp->arguements = arguements;
-        temp->next = NULL;
+        
         temp->processname = try_malloc(sizeof(commands[0]));
         strcpy(temp->processname, commands[0]);
+        
         temp->processargsv = try_malloc(sizeof(commands));		
         for(i=0; i<arguements; i++){
             temp->processargsv[i] = try_malloc(sizeof(commands[i]));
             strcpy(temp->processargsv[i], commands[i]);
         }
-        PROCESS *p = *head;
+        temp->next = NULL;
+
+        PROCESS *p = head;
         while(p->next != NULL){
-        p=p->next;
+            p=p->next;
         }
         p->next = temp;
     }
@@ -89,12 +125,14 @@ void add_process(PROCESS **head, pid_t pid, char **commands, int arguements){
 }
 
 /*
-    print_process_list
+    print_process_list prints a formatted list of proesses running in the 
+    background. Lists paused processes too.
 */
-void print_process_list(PROCESS *head){
+void print_process_list(){
     PROCESS *temp = head;
     int i = 0;
     int jobs = 0;
+    printf("PID:\tcommand\targuements\n");
     while(temp != NULL){
         printf("%d:\t%s\t", temp->pid, temp->processname);
         for(i=1; i < temp->arguements; i++){
@@ -105,6 +143,23 @@ void print_process_list(PROCESS *head){
         jobs++;
     }
     printf("Total Background jobs:\t%d\n", jobs);
+    return;
+}
+
+/*
+    delete_list head pointer iterates through the list freeing each element
+    ending when head = NULL. This is ran at the end of the program to free 
+    up memory.
+*/
+void delete_list(){
+    PROCESS *temp;
+    while(head != NULL){
+        temp = head;
+        head = head->next;
+        free(temp);
+        temp = NULL;
+    }    
+    return;
 }
 
 /*
@@ -144,7 +199,8 @@ char *get_prompt(){
     parse_command takes a string array and places each arguement into one
     element. It does so doubling the size when it fills up and 
     dynamically allocating space for each string which means every arguement
-    can be as long as the user likes.
+    can be as long as the user likes and can accept as many arguements as the
+    user allows.
 */
 int parse_command(char *command, char ***p){ 
     char *token = NULL;
@@ -178,16 +234,20 @@ int parse_command(char *command, char ***p){
 /*
     command_arbitrary takes the user provided arguements and searches the path
     for a binary with the same name. If fork() or execv() has an error it will 
-    print to stderr.
+    print to stderr. Also handles background execution using a background flag.
 */
-void command_arbitrary(char **command_array, int arguements, PROCESS **head){
+void command_arbitrary(char **command_array, int arguements){
     char **commands;
     int background = 0;
     if(strcmp(command_array[0], "bg") == 0){
-        commands = command_array + 1;
-        background = 1;   
+        if(arguements > 1){
+            commands = command_array + 1;
+            background = 1;   
+        }else{
+            fprintf(stderr, "bg:    usage:  bg [command]\n");
+        }
     }else if(strcmp(command_array[0], "bglist") == 0){
-        print_process_list(*head);
+        print_process_list();
         return;
     }else{
         commands = command_array;
@@ -195,13 +255,14 @@ void command_arbitrary(char **command_array, int arguements, PROCESS **head){
     }    
     pid_t pid = fork();    
     if(pid == 0){
-    if(execvp(commands[0], commands) == -1){
+        if(execvp(commands[0], commands) == -1){
             perror("Error on execv");	
             exit(1);
+        }
     }else if(pid < 0){
         perror("Failed to fork process");
     }else if(background == 1){
-        add_process(head, pid, commands, arguements-1);   
+        add_process(pid, commands, arguements-1);   
     }
 	if(background == 0){
         wait(NULL);
@@ -211,7 +272,8 @@ void command_arbitrary(char **command_array, int arguements, PROCESS **head){
 
 /*
     command_change_directory prints errors for more than 2 arguements, invalid 
-    path and invalid HOME variable. Uses chdir() to change cwd
+    path and invalid HOME variable. Uses chdir() to change cwd to the path 
+    given. 
 */
 void command_change_directory(char **command_array, int arguements){
     if(arguements > 2){
@@ -244,13 +306,35 @@ void command_change_directory(char **command_array, int arguements){
 }
 
 /*
+    command_signal_process sends the signal provided (KILL/STOP/CONT) to the
+    child process with PID provided. Also prevents user from affecting the 
+    shell
+*/
+void command_signal_process(char **command_array, int arguements, int signum){
+    if(arguements == 2){
+        pid_t pid = (pid_t)strtol(command_array[1], NULL, 10);
+        if(pid == 0){
+            fprintf(stderr, "[SIGNAL]: usage: [kill|pause|resume] [PID]\n");
+        }else{      
+            int result = kill(pid, signum);        
+            if(result == -1){
+                perror("Error sending ");
+            }
+        }
+    }else{
+        fprintf(stderr, "kill:  usage:  kill [PID]\n");
+    }
+    return;
+}
+
+/*
     child_sig_handler asynchronously handles child process termination and
     deletes the process from the background process list.
 */
 void child_sig_handler(int signal_number){
     pid_t pid;	
     while((pid = waitpid((pid_t)(-1), NULL, WNOHANG)) > 0){
-        printf("pid = %d\n", pid);
+        delete_process(pid);
     }
 }
 
@@ -267,7 +351,6 @@ int main(void){
     char *command = NULL;
     char *prompt = NULL;
     char **command_array = NULL;
-    PROCESS *head = NULL;
     while(active){
         prompt = get_prompt();
         command = readline(prompt);
@@ -284,11 +367,18 @@ int main(void){
 
         free(command);
         command = NULL;
-
-        if(strcmp(command_array[0], "cd") == 0){
-            command_change_directory(command_array, arguements);
-        }else{
-            command_arbitrary(command_array, arguements, &head);
+        if(arguements > 0){
+            if(strcmp(command_array[0], "cd") == 0){
+                command_change_directory(command_array, arguements);
+            }else if(strcmp(command_array[0], "kill") == 0){
+                command_signal_process(command_array, arguements, SIGKILL);
+            }else if(strcmp(command_array[0], "pause") == 0){
+                command_signal_process(command_array, arguements, SIGSTOP);
+            }else if (strcmp(command_array[0], "resume") == 0){
+                command_signal_process(command_array, arguements, SIGCONT);
+            }else{
+                command_arbitrary(command_array, arguements);
+            }
         }
 
         for(i=0; i<arguements; i++){
@@ -297,8 +387,8 @@ int main(void){
         }
         free(command_array);
         command_array = NULL;
-    }    
+    }  
+    delete_list();  
     printf("\n");
     return 0;
 }
-//TODO FREE LL on program exit, signal handler, give a user a message that child terminated and remove from linked list (including free)
