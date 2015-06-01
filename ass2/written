@@ -1,0 +1,27 @@
+Konrad Schultz
+V00761540
+June 1, 2015
+CSC360 Assignment 2 Deliverable 1
+
+Questions:
+1.  There will be one thread for each train, and a main controller thread that keeps track of timings and prints to stdout.
+
+2.  There is an overall controller thread that keeps a queue of train departure order.
+
+3.  There will be one mutex to guard the main track (current_train).
+
+4.  No the main thread will not be idle. It will be responsible for queueing the trains and sending them on their way.
+
+5.  Stations will be represented by a heap based priority queue.
+
+6.  Only the main thread will modify the data structures, so only it will have access to them.
+
+7.  How many convars are you going to use? For each conver:
+	a) describe the condition
+	b) which mutex is associated with it, why
+	c) What operation should be performed once 
+	   pthread_cond_wait() has been unblocked?
+
+8. In 15 lines or less briefly sketch the overall algorithm you will 	use. 
+    You may use sentences such as: 
+      If train is loaded, get station mutex, put into queue, release station mutex.
