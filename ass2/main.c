@@ -1,8 +1,14 @@
 #include <pthread.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <time.h>
+#include <unistd.h>
+
+pthread_barrier_t barrier; //initial synchronization object
 
 struct train{
+    pthread_t thread;
+    char number;
     char direction;
     char loading_time;
     char crossing_time;
@@ -18,6 +24,7 @@ void parse_input_file(FILE *fp, struct train *trains, int numtrains){
         trains[i].direction = direction_buf;
         trains[i].loading_time = (char)loading_buf;
         trains[i].crossing_time = (char)crossing_buf;
+        trains[i].number = (char)i;
         if(direction_buf >= 'a'){
             trains[i].priority = 0;
         }else{
@@ -29,9 +36,17 @@ void parse_input_file(FILE *fp, struct train *trains, int numtrains){
 }
 
 void *PrintTrain(void *trainid){
+    pthread_barrier_wait (&barrier);
     struct train *t;
     t = (struct train *)trainid;
-    printf("%c:%d,%d    %d\n", t->direction, t->loading_time, t->crossing_time, t->priority);
+    char *direction;
+    if(t->direction == 'W' || t->direction == 'w'){
+        direction = "West";
+    }else{
+        direction = "East";
+    }
+    usleep(t->loading_time*100000);
+    printf("Train %2d is ready to go %4s\n",t->number, direction);
     pthread_exit(NULL);
 }
 
@@ -45,7 +60,7 @@ int main(int argc, char *argv[]){
     FILE *input_file = fopen(argv[1], "r");
     
     struct train trains[number_of_trains];
-    pthread_t threads[number_of_trains];
+    pthread_barrier_init(&barrier, NULL, number_of_trains);
     
     if(input_file == 0){
         fprintf(stderr, "Could not open file %s\n", argv[1]);
@@ -53,19 +68,24 @@ int main(int argc, char *argv[]){
     }else{
         parse_input_file(input_file, trains, number_of_trains);
     }
+    fclose(input_file);
 
     int i = 0;
     int return_code;
     struct train *temp;
     for(i=0; i < number_of_trains; i++){
         temp = &trains[i];
-        return_code = pthread_create(&threads[i], NULL, PrintTrain, (void*)temp);
-        if(rc){
-            fprintf(stderr, "ERROR: return code from pthread_create() is %d\n", rc);
+        return_code = pthread_create(&temp->thread, NULL, PrintTrain, (void*)temp);
+        if(return_code){
+            fprintf(stderr, "ERROR: return code from pthread_create() is %d\n", return_code);
             exit(1);
         }
     }
-
-    fclose(input_file);
+    for(i=0; i < number_of_trains; i++){
+        temp = &trains[i];
+        pthread_join(temp->thread, NULL);
+    }
+    
+    
     return 0;
 }
