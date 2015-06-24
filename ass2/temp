@@ -1,0 +1,22 @@
+// if(whead->priority == 1){
+        //     if(ehead->priority == 1){
+        //         if(prev_direction == "East"){
+        //             //send west train
+        //         }else{
+        //             //send east train
+        //         }
+        //     }else{
+        //         //send west train
+        //     }
+        // }else{
+        //     if(ehead->priority == 0){
+        //         if(prev_direction == "East"){
+        //             //send west train
+        //         }else{
+        //             //send east train
+        //         }
+        //     }else{
+        //         //send east train
+        //     }
+        // }
+        //printf("%d\n", trains_finished++);
