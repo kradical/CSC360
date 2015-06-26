@@ -8,7 +8,7 @@
 struct train{
     pthread_t thread; /* thread id */
     struct train *next;
-    char number; /* id in range [0, 99] */
+    int number; /* id in range [0, 99] */
     char direction; /* e or w */
     char loading_time; /* 10ths of seconds in range [1, 99] */
     char crossing_time; /* 10ths of seconds in range [1, 99] */
@@ -27,12 +27,12 @@ void parse_input_file(FILE *, struct train *, int);
 
 pthread_mutex_t eastbound_lock;
 pthread_mutex_t westbound_lock;
-pthread_mutex_t main_track_lock;
-pthread_cond_t added_cv;
+pthread_mutex_t trains_adding_lock;
 pthread_barrier_t initial_barrier;
 struct timespec ts_start;
 struct train *eastbound_head = NULL;
 struct train *westbound_head = NULL;
+int trains_adding = 0;
 
 /* helper function to error check calls to malloc */
 void *try_malloc(int size){
@@ -162,18 +162,24 @@ void *TrainFunction(void *trainid){
         perror("ERROR: return code from clock_gettime() is -1");
         exit(1);
     } 
+    while(pthread_mutex_lock(&trains_adding_lock) != 0 );
+    trains_adding++;
+    pthread_mutex_unlock(&trains_adding_lock);
     calculate_time(ts_current, &msec, &sec, &min, &hour);
     if(t->direction == 'w'){
         while(pthread_mutex_lock(&westbound_lock) != 0);
         add_train(t);
+        printf("%02d:%02d:%02d.%1ld Train %2d is ready to go %4s\n", hour, min, sec, msec, t->number, t->direction == 'w' ? "West":"East");
         pthread_mutex_unlock(&westbound_lock);
     }else{
         while(pthread_mutex_lock(&eastbound_lock) != 0);
         add_train(t);
+        printf("%02d:%02d:%02d.%1ld Train %2d is ready to go %4s\n", hour, min, sec, msec, t->number, t->direction == 'w' ? "West":"East");
         pthread_mutex_unlock(&eastbound_lock);
     }
-    printf("%02d:%02d:%02d.%1ld Train %2d is ready to go %4s\n", hour, min, sec, msec, t->number, t->direction == 'w' ? "West":"East");
-    pthread_cond_signal(&added_cv);
+    while(pthread_mutex_lock(&trains_adding_lock) != 0);
+    trains_adding--;
+    pthread_mutex_unlock(&trains_adding_lock);
     pthread_exit(NULL);
 }
 
@@ -191,11 +197,9 @@ void dispatcher(int numtrains){
     int hour;
 
     while(trains_finished < numtrains){
-        while(pthread_mutex_lock(&main_track_lock) != 0);
-        while(westbound_head == NULL && eastbound_head == NULL){ /* wait if lists are both empty */
-            pthread_cond_wait(&added_cv, &main_track_lock);
-        }
-        pthread_mutex_unlock(&main_track_lock);
+        while(westbound_head == NULL && eastbound_head == NULL);
+        while(trains_adding > 0);
+	usleep(1000);
         while(pthread_mutex_lock(&westbound_lock) != 0);
         while(pthread_mutex_lock(&eastbound_lock) != 0);
         if(westbound_head != NULL && eastbound_head != NULL){
@@ -235,7 +239,7 @@ void dispatcher(int numtrains){
         calculate_time(ts_current, &msec, &sec, &min, &hour);
         printf("%02d:%02d:%02d.%1ld Train %2d is ON the main track going %4s\n", hour, min, sec, msec, temp->number, temp->direction == 'w' ? "West":"East");
         
-        usleep(temp->crossing_time*100000);
+        usleep(temp->crossing_time*100000 - 1000);
         
         if(clock_gettime(CLOCK_MONOTONIC, &ts_current)){
             perror("ERROR: return code from clock_gettime() is -1");
@@ -257,11 +261,10 @@ void parse_input_file(FILE *fp, struct train *trains, int numtrains){
     int crossing_buf;
     int i = 0;
     while(fscanf(fp, "%c:%d,%d\n", &direction_buf, &loading_buf, &crossing_buf) != EOF){
-        if(i > numtrains)break;
-
+        if(i == numtrains)break;
         trains[i].loading_time = (char)loading_buf;
         trains[i].crossing_time = (char)crossing_buf;
-        trains[i].number = (char)i;
+        trains[i].number = (int)i;
         if(direction_buf >= 'a'){ /* lowercase */
             trains[i].priority = 0;
         }else{ /* uppercase */
@@ -298,7 +301,6 @@ int main(int argc, char *argv[]){
         exit(1);
     }
     trains = try_malloc(sizeof(struct train)*number_of_trains);
-
     input_file = fopen(argv[1], "r");
     if(input_file == NULL){
         fprintf(stderr, "Could not open file %s\n", argv[1]);
@@ -307,15 +309,9 @@ int main(int argc, char *argv[]){
         parse_input_file(input_file, trains, number_of_trains);
     }
     fclose(input_file);
-
     return_code = pthread_barrier_init(&initial_barrier, NULL, number_of_trains);
     if(return_code){
         fprintf(stderr, "ERROR: return code from pthread_barrier_init() is %d\n", return_code);
-        exit(1);
-    }
-    return_code = pthread_cond_init (&added_cv, NULL);
-    if(return_code){
-        fprintf(stderr, "ERROR: return code from pthread_cond_init() is %d\n", return_code);
         exit(1);
     }
     return_code = pthread_mutex_init(&westbound_lock, NULL);
@@ -328,7 +324,7 @@ int main(int argc, char *argv[]){
         fprintf(stderr, "ERROR: return code from pthread_mutex_init() is %d\n", return_code);
         exit(1);
     }
-    return_code = pthread_mutex_init(&main_track_lock, NULL);
+    return_code = pthread_mutex_init(&trains_adding_lock, NULL);
     if(return_code){
         fprintf(stderr, "ERROR: return code from pthread_mutex_init() is %d\n", return_code);
         exit(1);
@@ -349,10 +345,9 @@ int main(int argc, char *argv[]){
     dispatcher(number_of_trains);
 
     pthread_barrier_destroy(&initial_barrier);
-    pthread_cond_destroy(&added_cv);
     pthread_mutex_destroy(&westbound_lock);
     pthread_mutex_destroy(&eastbound_lock);
-    pthread_mutex_destroy(&main_track_lock);
+    pthread_mutex_destroy(&trains_adding_lock);
     free(trains);
     return 0;
 }
