@@ -1,0 +1,104 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE abiword PUBLIC "-//ABISOURCE//DTD AWML 1.0 Strict//EN" "http://www.abisource.com/awml.dtd">
+<abiword template="false" xmlns:ct="http://www.abisource.com/changetracking.dtd" xmlns:fo="http://www.w3.org/1999/XSL/Format" xmlns:math="http://www.w3.org/1998/Math/MathML" xid-max="46" xmlns:dc="http://purl.org/dc/elements/1.1/" fileformat="1.1" xmlns:svg="http://www.w3.org/2000/svg" xmlns:awml="http://www.abisource.com/awml.dtd" xmlns="http://www.abisource.com/awml.dtd" xmlns:xlink="http://www.w3.org/1999/xlink" version="3.0.1" xml:space="preserve" props="dom-dir:ltr; document-footnote-restart-section:0; document-endnote-type:numeric; document-endnote-place-enddoc:1; document-endnote-initial:1; lang:en-CA; document-endnote-restart-section:0; document-footnote-restart-page:0; document-footnote-type:numeric; document-footnote-initial:1; document-endnote-place-endsection:0">
+<!-- ======================================================================== -->
+<!-- This file is an AbiWord document.                                        -->
+<!-- AbiWord is a free, Open Source word processor.                           -->
+<!-- More information about AbiWord is available at http://www.abisource.com/ -->
+<!-- You should not edit this file by hand.                                   -->
+<!-- ======================================================================== -->
+
+<metadata>
+<m key="abiword.generator">AbiWord</m>
+<m key="dc.format">application/x-abiword</m>
+</metadata>
+<rdf>
+</rdf>
+<styles>
+<s type="P" name="Arrowhead List" basedon="Normal" props="text-indent:-21.600000pt; margin-left:36.000000pt"/>
+<s type="P" name="Block Text" basedon="_Normal" props="margin-bottom:6.000000pt; margin-right:72.000000pt; margin-left:72.000000pt"/>
+<s type="P" name="Box List" basedon="Normal" props="text-indent:-21.600000pt; margin-left:36.000000pt"/>
+<s type="P" name="Bullet List" basedon="Normal" props="text-indent:-21.600000pt; margin-left:36.000000pt"/>
+<s type="P" name="Chapter Heading" basedon="Numbered Heading 1" followedby="_Normal" props="text-indent:0.000000pt"/>
+<s type="P" name="Contents 1" basedon="_Normal" followedby="_Normal" props="text-indent:-21.600000pt; margin-left:36.000000pt"/>
+<s type="P" name="Contents 2" basedon="_Normal" followedby="_Normal" props="text-indent:-21.600000pt; margin-left:72.000000pt"/>
+<s type="P" name="Contents 3" basedon="_Normal" followedby="_Normal" props="text-indent:-21.600000pt; margin-left:108.000000pt"/>
+<s type="P" name="Contents 4" basedon="_Normal" followedby="_Normal" props="text-indent:-21.600000pt; margin-left:144.000000pt"/>
+<s type="P" name="Contents Header" basedon="_Normal" followedby="_Normal" props="text-align:center; margin-top:12.000000pt; font-weight:bold; margin-bottom:6.000000pt; font-family:Liberation Sans; font-size:16.000000pt"/>
+<s type="P" name="Dashed List" basedon="Normal" props="text-indent:-21.600000pt; margin-left:36.000000pt"/>
+<s type="C" name="Default Paragraph Font" basedon="_Normal"/>
+<s type="P" name="Diamond List" basedon="Normal" props="text-indent:-21.600000pt; margin-left:36.000000pt"/>
+<s type="P" name="Endnote" basedon="_Normal" props="text-indent:-14.400000pt; margin-left:14.400000pt"/>
+<s type="C" name="Endnote Reference" basedon="Normal" props="text-position:superscript; font-size:10.000000pt"/>
+<s type="P" name="Endnote Text" basedon="_Normal"/>
+<s type="P" name="Footnote" basedon="_Normal" props="text-indent:-14.400000pt; font-size:10.000000pt; margin-left:14.400000pt"/>
+<s type="C" name="Footnote Reference" basedon="Normal" props="text-position:superscript; font-size:10.000000pt"/>
+<s type="P" name="Footnote Text" basedon="_Normal" props="font-size:10.000000pt"/>
+<s type="P" name="Hand List" basedon="Normal" props="text-indent:-21.600000pt; margin-left:36.000000pt"/>
+<s type="P" name="Heading 1" basedon="_Normal" followedby="_Normal" props="margin-top:22.000000pt; font-weight:bold; margin-bottom:3.000000pt; font-family:Liberation Sans; font-size:17.000000pt"/>
+<s type="P" name="Heading 2" basedon="_Normal" followedby="_Normal" props="margin-top:22.000000pt; font-weight:bold; margin-bottom:3.000000pt; font-family:Liberation Sans; font-size:14.000000pt"/>
+<s type="P" name="Heading 3" basedon="_Normal" followedby="_Normal" props="margin-top:22.000000pt; font-weight:bold; margin-bottom:3.000000pt; font-family:Liberation Sans; font-size:12.000000pt"/>
+<s type="P" name="Heading 4" basedon="_Normal" followedby="_Normal" props="margin-top:22.000000pt; font-weight:bold; margin-bottom:3.000000pt; font-family:Liberation Sans; font-size:12.000000pt"/>
+<s type="P" name="Heart List" basedon="Normal" props="text-indent:-21.600000pt; margin-left:36.000000pt"/>
+<s type="P" name="Implies List" basedon="Normal" props="text-indent:-21.600000pt; margin-left:36.000000pt"/>
+<s type="P" name="Lower Case List" basedon="Numbered List" props="text-indent:-21.600000pt; margin-left:36.000000pt"/>
+<s type="P" name="Lower Roman List" basedon="_Normal" props="text-indent:-21.600000pt; margin-left:36.000000pt"/>
+<s type="P" name="No List" basedon="_Normal"/>
+<s type="P" name="Normal" basedon="Normal" followedby="Current Settings" props="font-family:Times New Roman; font-size:11.000000pt"/>
+<s type="P" name="Normal Table" basedon="_Normal"/>
+<s type="P" name="Numbered Heading 1" basedon="Heading 1" followedby="_Normal" props="text-indent:0.000000pt"/>
+<s type="P" name="Numbered Heading 2" basedon="Heading 2" followedby="_Normal" props="text-indent:0.000000pt"/>
+<s type="P" name="Numbered Heading 3" basedon="Heading 3" followedby="_Normal" props="text-indent:0.000000pt"/>
+<s type="P" name="Numbered List" basedon="Normal" props="text-indent:-21.600000pt; margin-left:36.000000pt"/>
+<s type="P" name="Plain Text" basedon="_Normal" props="font-family:Courier New"/>
+<s type="P" name="Section Heading" basedon="Numbered Heading 1" followedby="_Normal" props="text-indent:0.000000pt"/>
+<s type="P" name="Square List" basedon="Normal" props="text-indent:-21.600000pt; margin-left:36.000000pt"/>
+<s type="P" name="Star List" basedon="Normal" props="text-indent:-21.600000pt; margin-left:36.000000pt"/>
+<s type="P" name="Tick List" basedon="Normal" props="text-indent:-21.600000pt; margin-left:36.000000pt"/>
+<s type="P" name="Triangle List" basedon="Normal" props="text-indent:-21.600000pt; margin-left:36.000000pt"/>
+<s type="P" name="Upper Case List" basedon="Numbered List" props="text-indent:-21.600000pt; margin-left:36.000000pt"/>
+<s type="P" name="Upper Roman List" basedon="Numbered List" props="text-indent:-21.600000pt; margin-left:36.000000pt"/>
+<s type="P" name="_Normal" basedon="_Normal"/>
+</styles>
+<lists>
+<l id="110001" parentid="109824" type="5" start-value="0" list-delim="%L." list-decimal="."/>
+</lists>
+<pagesize pagetype="Letter" orientation="portrait" width="8.500000" height="11.000000" units="in" page-scale="1.000000"/>
+<section xid="1" props="page-margin-right:1.000000in; column-line:off; page-margin-left:1.000000in; columns:1; page-margin-top:1.000000in; page-margin-bottom:1.000000in">
+<p xid="2">Konrad Schultz V00761540 CSC360 <c props="color:ff0000">2.2</c></p>
+<p xid="3"><c props="color:ff0000">Changes in red</c></p>
+<p xid="4"><c></c></p>
+<p xid="5">1.  There will be one thread for each train loading, and a main controller thread that keeps track of timings and prints to stdout. <c props="color:ff0000">Schedules the trains.</c></p>
+<p xid="6"><c></c></p>
+<p xid="7" props="tabstops:5.484028in/L0">2.  There is an overall controller thread <c props="font-size:11.000000pt; text-decoration:line-through; font-family:Century Schoolbook L; color:ff0000">that keeps a queue of train departure order</c>. This follows the manager-worker threaded program design pattern.</p>
+<p xid="8"><c></c></p>
+<p xid="9">3.  There will be one mutex to lock the main track (<c props="color:ff0000">main_track</c>) and one mutex to lock <c props="color:ff0000">each</c> train list.</p>
+<p xid="10">    (may split train list into multiple train lists which each require a mutex to have less threads accessing      </p>
+<p xid="11">    the same piece of data). <c props="color:ff0000">(eastbound_lock) (westbound_lock)</c></p>
+<p xid="12"><c></c></p>
+<p xid="13">4.  No the main thread will not be idle. It will be responsible for <c props="color:ff0000">dispatching</c> the trains and sending them on their way. It will also spawn a thread for each train and read the input file.</p>
+<p xid="14"><c></c></p>
+<p xid="15">5.  Stations will be represented by a linked list. The <c props="color:ff0000">each train</c> thread will be responsible for inserting <c props="color:ff0000">itself</c> based on priority order (o(n)) and <c props="color:ff0000">the main thread will be responsible for</c> sending the next available train on the track (o(1)).</p>
+<p xid="16"><c></c></p>
+<p xid="17">6.  I can think of going about this two ways, either each of the threads will have access to the list and it will be guarded by a mutex/convar or the thread will return some sort of ready signal to the main controller thread that will add it to the list of trains (I’ll probably use the former). <c props="color:ff0000">3 mutexes, 1 condition variable. The dispatcher waits for something to be inserted when there is nothing in either list (condition variable) and the eastbound and westbound lists have a mutex. added_cv is associated with main_track_lock.</c></p>
+<p xid="18"><c></c></p>
+<p xid="19">7. From my understanding of conditional variables I don’t think I will require any. Thread locking / mutual exclusion should be all the logic I require. The only conditions will be MAIN_TRACK_STATUS and TRAIN_LIST_STATUS which will be either locked or unlocked, and a thread should wait until it’s unlocked and then perform its action. <c props="color:ff0000">I used 1 condition variable (added_cv) to tell the dispatcher to wait while there is nothing in either list. The train threads signal this condition variable whenever something is added.</c></p>
+<p xid="20"><c></c></p>
+<p xid="21">8. In 15 lines or less briefly sketch the overall algorithm you will use<c props="color:ff0000">d</c>. </p>
+<p xid="22">    Create all relevant mutexes and data structures</p>
+<p xid="23">    Read input file and spawn a thread for each train.</p>
+<p xid="24">    <c props="color:ff0000">Sleep for train's loading time</c></p>
+<p xid="25">    Once a train is loaded display output to screen and acquire list mutex</p>
+<p xid="26">    Add train to the proper place in the list based on its priority and other factors</p>
+<p xid="27">    Unlock the list mutex</p>
+<p xid="28">    <c props="color:ff0000">Signal dispatcher</c></p>
+<p level="1" listid="110001" parentid="110000" xid="29" props="text-indent:-21.600000pt; field-font:NULL; margin-left:36.000000pt"><field level="1" listid="110001" parentid="110000" type="list_label" xid="30" props="text-indent:-21.600000pt; field-font:NULL; margin-left:36.000000pt"></field><c level="1" listid="110001" parentid="110000" type="list_label" props="text-indent:-21.600000pt; field-font:NULL; margin-left:36.000000pt">	</c><c props="color:ff0000">    Lock the track mutex</c></p>
+<p level="1" listid="110001" parentid="110000" xid="31" props="text-indent:-21.600000pt; field-font:NULL; margin-left:36.000000pt"><field level="1" listid="110001" parentid="110000" type="list_label" xid="32" props="text-indent:-21.600000pt; field-font:NULL; margin-left:36.000000pt"></field><c level="1" listid="110001" parentid="110000" type="list_label" props="text-indent:-21.600000pt; field-font:NULL; margin-left:36.000000pt">	</c><c props="color:ff0000">    If nothing in either list wait to be signalled</c></p>
+<p level="1" listid="110001" parentid="110000" xid="33" props="text-indent:-21.600000pt; field-font:NULL; margin-left:36.000000pt"><field level="1" listid="110001" parentid="110000" type="list_label" xid="34" props="text-indent:-21.600000pt; field-font:NULL; margin-left:36.000000pt"></field><c level="1" listid="110001" parentid="110000" type="list_label" props="text-indent:-21.600000pt; field-font:NULL; margin-left:36.000000pt">	</c><c props="color:ff0000">    Lock both list mutexes</c></p>
+<p level="1" listid="110001" parentid="110000" xid="35" props="text-indent:-21.600000pt; field-font:NULL; margin-left:36.000000pt"><field level="1" listid="110001" parentid="110000" type="list_label" xid="36" props="text-indent:-21.600000pt; field-font:NULL; margin-left:36.000000pt"></field><c level="1" listid="110001" parentid="110000" type="list_label" props="text-indent:-21.600000pt; field-font:NULL; margin-left:36.000000pt">	</c><c props="color:ff0000">    Pop the next train to go off its respective list</c></p>
+<p level="1" listid="110001" parentid="110000" xid="37" props="text-indent:-21.600000pt; field-font:NULL; margin-left:36.000000pt"><field level="1" listid="110001" parentid="110000" type="list_label" xid="38" props="text-indent:-21.600000pt; field-font:NULL; margin-left:36.000000pt"></field><c level="1" listid="110001" parentid="110000" type="list_label" props="text-indent:-21.600000pt; field-font:NULL; margin-left:36.000000pt">	</c><c props="color:ff0000">    Unlock list mutexes</c></p>
+<p level="1" listid="110001" parentid="110000" xid="39" props="text-indent:-21.600000pt; field-font:NULL; margin-left:36.000000pt"><field level="1" listid="110001" parentid="110000" type="list_label" xid="40" props="text-indent:-21.600000pt; field-font:NULL; margin-left:36.000000pt"></field><c level="1" listid="110001" parentid="110000" type="list_label" props="text-indent:-21.600000pt; field-font:NULL; margin-left:36.000000pt">	</c><c props="color:ff0000">    Sleep for train’s crossing time</c></p>
+<p level="1" listid="110001" parentid="110000" xid="41" props="text-indent:-21.600000pt; field-font:NULL; margin-left:36.000000pt"><field level="1" listid="110001" parentid="110000" type="list_label" xid="42" props="text-indent:-21.600000pt; field-font:NULL; margin-left:36.000000pt"></field><c level="1" listid="110001" parentid="110000" type="list_label" props="text-indent:-21.600000pt; field-font:NULL; margin-left:36.000000pt">	</c><c props="color:ff0000">    Unlock the track mutex</c></p>
+<p level="1" listid="110001" parentid="110000" xid="43" props="text-indent:-21.600000pt; field-font:NULL; margin-left:36.000000pt"><field level="1" listid="110001" parentid="110000" type="list_label" xid="44" props="text-indent:-21.600000pt; field-font:NULL; margin-left:36.000000pt"></field><c level="1" listid="110001" parentid="110000" type="list_label" props="text-indent:-21.600000pt; field-font:NULL; margin-left:36.000000pt">	</c><c props="bgcolor:ffffff; lang:ar-SA; font-size:11.000000pt; font-family:Times New Roman; color:ff0000">REPEAT UNTIL ALL TRAINS CROSSED</c><bookmark type="start" name="_GoBack" xid="45"/><bookmark type="end" name="_GoBack" xid="46"/></p>
+</section>
+</abiword>
