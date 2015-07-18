@@ -1,32 +1,34 @@
 #include <errno.h>
 #include <fcntl.h> 
 #include <math.h>
+#include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>  
+#include <sys/mman.h>
 #include <sys/types.h> 
 #include <sys/stat.h> 
 #include <time.h> 
 #include <unistd.h> 
  
 
-struct superblock{
-    long blocksize;
-    long blockcount;
-    long FATstart;
-    long FATblocks;
-    long rootstart;
-    long rootblocks;
+struct superblock_t{
+    uint16_t block_size;
+    uint32_t block_count;
+    uint32_t FATstart;
+    uint32_t FATblocks;
+    uint32_t rootstart;
+    uint32_t root_block_count;
 };
 
-struct FAT{
-    long reserved;
-    long available;
-    long allocated;
+struct FAT_t{
+    uint32_t reserved;
+    uint32_t available;
+    uint32_t allocated;
 };
 
-struct superblock SB;
-struct FAT FB;
+struct superblock_t SB;
+struct FAT_t FB;
 
 void printFileInfo(char* disk_name){
     int f_d = 0;
@@ -53,63 +55,68 @@ void printFileInfo(char* disk_name){
 
 void printDiskInfo(void){
     printf("Super block information:\n");
-    printf("Block size: %ld\n", SB.blocksize);
-    printf("Block count: %ld\n", SB.blockcount);
-    printf("FAT starts: %ld\n", SB.FATstart);
-    printf("FAT blocks: %ld\n", SB.FATblocks);
-    printf("Root directory start: %ld\n", SB.rootstart);
-    printf("Root directory blocks: %ld\n\n", SB.rootblocks);
+    printf("Block size: %d\n", SB.block_size);
+    printf("Block count: %d\n", SB.block_count);
+    printf("FAT starts: %d\n", SB.FATstart);
+    printf("FAT blocks: %d\n", SB.FATblocks);
+    printf("Root directory start: %d\n", SB.rootstart);
+    printf("Root directory blocks: %d\n\n", SB.root_block_count);
     printf("FAT information:\n");
-    printf("Free Blocks: %ld\n", FB.available);
-    printf("Reserved Blocks: %ld\n", FB.reserved);
-    printf("Allocated Blocks: %ld\n", FB.allocated);
+    printf("Free Blocks: %d\n", FB.available);
+    printf("Reserved Blocks: %d\n", FB.reserved);
+    printf("Allocated Blocks: %d\n", FB.allocated);
 }
 
-void readFATinfo(int fp){
+void readFATinfo(char* fp){
     FB.reserved = 0;
     FB.available = 0;
-    unsigned char FATblockbuf[4];
+    long FS = SB.block_size*(SB.FATstart-1);
     int i;
-    for(i=0; i<SB.FATblocks*SB.blocksize/4; i++){
-        fread(&FATblockbuf, 4, 1, fp);
-        if(FATblockbuf[0]+FATblockbuf[1]+FATblockbuf[2] == 0){
-            if(FATblockbuf[3] == 1){
+    for(i=0; i<SB.FATblocks*SB.block_size;){
+        if(fp[FS+i]+fp[FS+i+1]+fp[FS+i+2] == 0){
+            if(fp[FS+i+3] == 1){
                 FB.reserved++;
-            }else if(FATblockbuf[3] == 0){
+            }else if(fp[FS+i+3] == 0){
                 FB.available++;
             }
         }
+        i += 4;
     }
-    FB.allocated = SB.blockcount - FB.reserved - FB.available;
+    FB.allocated = SB.block_count - FB.reserved - FB.available;
 }
 
-void readSuperBlock(int fp){
-    unsigned char superblock[512];
-    memcpy(superblock, (int*)fp, 512);
-    SB.blocksize = (superblock[8]<<8)+superblock[9];
-    SB.blockcount = (long)superblock[10]*pow(16, 8)+superblock[11]*pow(16, 4)+superblock[12]*pow(16, 2)+superblock[13];
-    SB.FATstart = (long)superblock[14]*pow(16, 8)+superblock[15]*pow(16, 4)+superblock[16]*pow(16, 2)+superblock[17];
-    SB.FATblocks = (long)superblock[18]*pow(16, 8)+superblock[19]*pow(16, 4)+superblock[20]*pow(16, 2)+superblock[21];
-    SB.rootstart = (long)superblock[22]*pow(16, 8)+superblock[23]*pow(16, 4)+superblock[24]*pow(16, 2)+superblock[25];
-    SB.rootblocks = (long)superblock[26]*pow(16, 8)+superblock[27]*pow(16, 4)+superblock[28]*pow(16, 2)+superblock[29];
+void readSuperBlock(char *fp){
+    
+    SB.block_size = (fp[8]<<8)+fp[9];
+    SB.block_count = (fp[10]<<24)+(fp[11]<<16)+(fp[12]<<8)+fp[13];
+    SB.FATstart = (fp[14]<<24)+(fp[15]<<16)+(fp[16]<<8)+fp[17];
+    SB.FATblocks = (fp[18]<<24)+(fp[19]<<16)+(fp[20]<<8)+fp[21];
+    SB.rootstart = (fp[22]<<24)+(fp[23]<<16)+(fp[24]<<8)+fp[25];
+    SB.root_block_count = (fp[26]<<24)+(fp[27]<<16)+(fp[28]<<8)+fp[29];
     
     readFATinfo(fp);
 }
 
 int main(int argc, char* argv[]){
     char* disk_name;
+    int fp;
+    struct stat sf;
+    char *p;
     if(argc > 1){
         disk_name = argv[1];
     }else{
         fprintf(stderr, "Must specify a file.");
         exit(1);
     }
-    int fp = open(disk_name, O_RDONLY);
-    if(fp == 0){
+    if((fp = open(disk_name, O_RDONLY)) >= 0){
+        fstat(fp, &sf);
+        p = mmap(NULL, sf.st_size, PROT_READ, MAP_SHARED, fp, 0);
+    }else{
         fprintf(stderr, "Can't open file.\n");
+        close(fp);
         exit(1);
     }
-    readSuperBlock(fp);
+    readSuperBlock(p);
     #if defined(PART1)
         if(argc == 2) printDiskInfo();
         else fprintf(stderr, "USAGE: ./diskinfo [disk img]\n");
