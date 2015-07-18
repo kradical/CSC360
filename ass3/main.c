@@ -19,7 +19,14 @@ struct superblock{
     long rootblocks;
 };
 
+struct FAT{
+    long reserved;
+    long available;
+    long allocated;
+};
+
 struct superblock SB;
+struct FAT FB;
 
 void printFileInfo(char* disk_name){
     int f_d = 0;
@@ -53,24 +60,40 @@ void printDiskInfo(void){
     printf("Root directory start: %ld\n", SB.rootstart);
     printf("Root directory blocks: %ld\n\n", SB.rootblocks);
     printf("FAT information:\n");
-    printf("Free Blocks: 0\n");
-    printf("Reserved Blocks: 0\n");
-    printf("Allocated Blocks: 0\n");
+    printf("Free Blocks: %ld\n", FB.available);
+    printf("Reserved Blocks: %ld\n", FB.reserved);
+    printf("Allocated Blocks: %ld\n", FB.allocated);
 }
 
-void readSuperBlock(FILE *fp){
-    unsigned char superblock[512];
-    fread(&superblock, 512, 1, fp);
+void readFATinfo(int fp){
+    FB.reserved = 0;
+    FB.available = 0;
+    unsigned char FATblockbuf[4];
     int i;
-    for(i=0; i<512; i++){
-        printf("%.2X ", superblock[i]);
+    for(i=0; i<SB.FATblocks*SB.blocksize/4; i++){
+        fread(&FATblockbuf, 4, 1, fp);
+        if(FATblockbuf[0]+FATblockbuf[1]+FATblockbuf[2] == 0){
+            if(FATblockbuf[3] == 1){
+                FB.reserved++;
+            }else if(FATblockbuf[3] == 0){
+                FB.available++;
+            }
+        }
     }
-    SB.blocksize = superblock[8]*pow(16, 2)+superblock[9];
+    FB.allocated = SB.blockcount - FB.reserved - FB.available;
+}
+
+void readSuperBlock(int fp){
+    unsigned char superblock[512];
+    memcpy(superblock, (int*)fp, 512);
+    SB.blocksize = (superblock[8]<<8)+superblock[9];
     SB.blockcount = (long)superblock[10]*pow(16, 8)+superblock[11]*pow(16, 4)+superblock[12]*pow(16, 2)+superblock[13];
     SB.FATstart = (long)superblock[14]*pow(16, 8)+superblock[15]*pow(16, 4)+superblock[16]*pow(16, 2)+superblock[17];
-    SB.FATblocks = 0;
-    SB.rootstart = 0;
-    SB.rootblocks = 0;
+    SB.FATblocks = (long)superblock[18]*pow(16, 8)+superblock[19]*pow(16, 4)+superblock[20]*pow(16, 2)+superblock[21];
+    SB.rootstart = (long)superblock[22]*pow(16, 8)+superblock[23]*pow(16, 4)+superblock[24]*pow(16, 2)+superblock[25];
+    SB.rootblocks = (long)superblock[26]*pow(16, 8)+superblock[27]*pow(16, 4)+superblock[28]*pow(16, 2)+superblock[29];
+    
+    readFATinfo(fp);
 }
 
 int main(int argc, char* argv[]){
@@ -81,8 +104,8 @@ int main(int argc, char* argv[]){
         fprintf(stderr, "Must specify a file.");
         exit(1);
     }
-    FILE *fp = fopen(disk_name, "rb");
-    if(fp == NULL){
+    int fp = open(disk_name, O_RDONLY);
+    if(fp == 0){
         fprintf(stderr, "Can't open file.\n");
         exit(1);
     }
