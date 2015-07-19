@@ -30,29 +30,72 @@ struct FAT_t{
 struct superblock_t SB;
 struct FAT_t FB;
 
-void printFileInfo(char* disk_name){
-    int f_d = 0;
-    struct stat st;
-
-    f_d = open(disk_name, O_RDONLY);
-    if(f_d == -1){
-        fprintf(stderr, "Can't open disk file.\n");
-        exit(1);
-    }
-    errno = 0;
-    if(fstat(f_d, &st)){
-        perror("fstat error: ");
-        close(f_d);
-        exit(1);
-    }
-
-    printf("File size:                %lld bytes\n", (long long)st.st_size);
-    printf("Last status change:       %s", ctime(&st.st_ctime));
-    printf("Last file access:         %s", ctime(&st.st_atime));
-    printf("Last file modification:   %s", ctime(&st.st_mtime));
-    close(f_d);
+uint32_t fourbfield(char *fp, int ndx){
+    return ((fp[ndx]&0xFF)<<24) + ((fp[ndx+1]&0xFF)<<16) + ((fp[ndx+2]&0xFF)<<8) + (fp[ndx+3]&0xFF);
 }
 
+uint16_t twobfield(char *fp, int ndx){
+    return ((fp[ndx]&0xFF)<<8) + (fp[ndx+1]&0xFF);
+}
+
+uint8_t onebfield(char *fp, int ndx){
+    return fp[ndx]&0xFF;
+}
+
+#if defined(PART2)
+void printFileInfo(char* fp, int start, int end){
+    int i;
+    for(i=start;i<end;i+=64){
+        if((fp[i] & 3) == 3){
+            printf("F ");
+        }else if((fp[i] & 5) == 5){
+            printf("D ");
+        }else{
+            continue;
+        }
+    uint32_t filesize = fourbfield(fp, i+9);
+    char filename[31];
+    int x = 0;
+    for(x=0; x<31; x++){
+        filename[x] = fp[i+27+x];
+    }
+    uint16_t year = twobfield(fp, i+20);
+    uint8_t month = onebfield(fp, i+22);
+    uint8_t day = onebfield(fp, i+23);
+    uint8_t hour = onebfield(fp, i+24);
+    uint8_t minute = onebfield(fp, i+25);
+    uint8_t second = onebfield(fp, i+26);
+    printf("%10d %30s ", filesize, filename);
+    printf("%4d/%02d/%02d %2d:%02d:%02d\n", year, month, day, hour, minute, second);
+    }
+}
+
+void printDirInfo(char* dirname, char* fp){
+    if(dirname[0] == '/'){
+        dirname++;
+        int i = 0;
+        char tempbuf[255];
+        while(dirname[0]  != '/' && dirname[0] != '\0'){
+            tempbuf[i++] = dirname[0];
+            dirname++;
+        }
+        tempbuf[i] = '\0';
+        printf("%s\n", tempbuf);
+        printf("%s\n\n", dirname);
+        printDirInfo(dirname, fp);
+    }else if(dirname[0] == '\0'){
+        printf("END OF DIRNAME\n");
+    }else{
+        fprintf(stderr, "Specify directory of format: /subdir/subdir/subdir\n");
+        exit(1);
+    }
+    // int end = (SB.rootstart+SB.root_block_count)*SB.block_size;
+    // int start = SB.rootstart*SB.block_size;
+    // printFileInfo(fp, start, end);
+}
+#endif
+
+#if defined(PART1)
 void printDiskInfo(void){
     printf("Super block information:\n");
     printf("Block size: %d\n", SB.block_size);
@@ -66,34 +109,32 @@ void printDiskInfo(void){
     printf("Reserved Blocks: %d\n", FB.reserved);
     printf("Allocated Blocks: %d\n", FB.allocated);
 }
+#endif
 
 void readFATinfo(char* fp){
     FB.reserved = 0;
     FB.available = 0;
-    long FS = SB.block_size*(SB.FATstart-1);
+    long FS = SB.block_size*SB.FATstart;
     int i;
-    for(i=0; i<SB.FATblocks*SB.block_size;){
-        if(fp[FS+i]+fp[FS+i+1]+fp[FS+i+2] == 0){
-            if(fp[FS+i+3] == 1){
-                FB.reserved++;
-            }else if(fp[FS+i+3] == 0){
-                FB.available++;
-            }
+    uint32_t temp;
+    for(i=0; i<SB.FATblocks*SB.block_size; i+=4){
+        temp = fourbfield(fp, FS+i);
+        if(temp == 0){
+            FB.available++;
+        }else if(temp == 1){
+            FB.reserved++;
         }
-        i += 4;
     }
     FB.allocated = SB.block_count - FB.reserved - FB.available;
 }
 
-void readSuperBlock(char *fp){
-    
-    SB.block_size = (fp[8]<<8)+fp[9];
-    SB.block_count = (fp[10]<<24)+(fp[11]<<16)+(fp[12]<<8)+fp[13];
-    SB.FATstart = (fp[14]<<24)+(fp[15]<<16)+(fp[16]<<8)+fp[17];
-    SB.FATblocks = (fp[18]<<24)+(fp[19]<<16)+(fp[20]<<8)+fp[21];
-    SB.rootstart = (fp[22]<<24)+(fp[23]<<16)+(fp[24]<<8)+fp[25];
-    SB.root_block_count = (fp[26]<<24)+(fp[27]<<16)+(fp[28]<<8)+fp[29];
-    
+void readSuperBlock(char *fp){    
+    SB.block_size = twobfield(fp, 8);
+    SB.block_count = fourbfield(fp, 10);
+    SB.FATstart = fourbfield(fp, 14);
+    SB.FATblocks = fourbfield(fp, 18);
+    SB.rootstart = fourbfield(fp, 22);
+    SB.root_block_count = fourbfield(fp, 26);
     readFATinfo(fp);
 }
 
@@ -105,7 +146,7 @@ int main(int argc, char* argv[]){
     if(argc > 1){
         disk_name = argv[1];
     }else{
-        fprintf(stderr, "Must specify a file.");
+        fprintf(stderr, "Must specify a disc image.");
         exit(1);
     }
     if((fp = open(disk_name, O_RDONLY)) >= 0){
@@ -121,9 +162,15 @@ int main(int argc, char* argv[]){
         if(argc == 2) printDiskInfo();
         else fprintf(stderr, "USAGE: ./diskinfo [disk img]\n");
     #elif defined(PART2)
-    printf("Part 2: disklist\n");
+        if(argc == 3) printDirInfo(argv[2], p);
+        else fprintf(stderr, "USAGE: ./disklist [disk img] [directory]\n");
     #elif defined(PART3)
-    printf("Part 3: diskget\n");
+        // int i;
+        // for(i=0;i<512*6400;i+=1){
+        //     if((unsigned long)p[i] > 255){
+        //         printf("%d %.2X\n", i, p[i]);
+        //     }
+        // }
     #elif defined(PART4)
     printf("Part 4: diskput\n");
     #endif
