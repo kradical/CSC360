@@ -8,36 +8,36 @@
 
 Navigate to the folder and use the makefile to compile the project. Only guarenteed to run on linux platforms. Also dependent on the Readline.h library.
 
-$ make
+`$ make`
 
-$ ./RSI
+`$ ./RSI`
 
 ###Assignment 2: Train Scheduler
 
 Navigate to the folder and use the makefile to compile the project. Only guarenteed to run on linux platforms. Also dependent on the pthread.h library
 
-$ make
+`$ make`
 
-$ ./mts
+`$ ./mts`
 
 ###Assignment 3: File System
 
 Navigate to the folder and use the makefile to compile the project. Only guarenteed to run on linux platforms. 
 
-$ make
+`$ make`
 
 Gets information from the superblock about the disk and prints to screen.
 
-$ ./diskinfo [disk img]
+`$ ./diskinfo [disk img]`
 
 Lists the files/directories and accompanying information contained in the given directory.
 
-$ ./disklist [disk img] [directory]
+`$ ./disklist [disk img] [directory]`
 
 Creates a local copy of the specified file.
 
-$ ./diskget [disk img] [file]
+`$ ./diskget [disk img] [file]`
 
 Copies a local file onto the disc in the given subdirectory.
 
-$ ./diskput [disk img] [local file] [directory]
+`$ ./diskput [disk img] [local file] [directory]`
