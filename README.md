@@ -1,6 +1,6 @@
-# CSC360
+# Operating Systems
 
-##Operating Systems
+##CSC360
 
 [![Language](https://img.shields.io/badge/language-C-blue.svg)](https://gcc.gnu.org/)
 
