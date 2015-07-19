@@ -2,7 +2,7 @@
 
 ##Operating Systems
 
-[![Language](https://img.shields.io/badge/language-C-brightblue.svg)](https://gcc.gnu.org/)
+[![Language](https://img.shields.io/badge/language-C-blue.svg)](https://gcc.gnu.org/)
 
 ###Assignment 1: Realistic Shell Interpreter
 
