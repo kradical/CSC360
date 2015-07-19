@@ -53,45 +53,68 @@ void printFileInfo(char* fp, int start, int end){
         }else{
             continue;
         }
-    uint32_t filesize = fourbfield(fp, i+9);
-    char filename[31];
-    int x = 0;
-    for(x=0; x<31; x++){
-        filename[x] = fp[i+27+x];
-    }
-    uint16_t year = twobfield(fp, i+20);
-    uint8_t month = onebfield(fp, i+22);
-    uint8_t day = onebfield(fp, i+23);
-    uint8_t hour = onebfield(fp, i+24);
-    uint8_t minute = onebfield(fp, i+25);
-    uint8_t second = onebfield(fp, i+26);
-    printf("%10d %30s ", filesize, filename);
-    printf("%4d/%02d/%02d %2d:%02d:%02d\n", year, month, day, hour, minute, second);
+        uint32_t filesize = fourbfield(fp, i+9);
+        char filename[31];
+        int x = 0;
+        for(x=0; x<31; x++){
+            filename[x] = fp[i+27+x];
+        }
+        uint16_t year = twobfield(fp, i+20);
+        uint8_t month = onebfield(fp, i+22);
+        uint8_t day = onebfield(fp, i+23);
+        uint8_t hour = onebfield(fp, i+24);
+        uint8_t minute = onebfield(fp, i+25);
+        uint8_t second = onebfield(fp, i+26);
+        printf("%10d %30s ", filesize, filename);
+        printf("%4d/%02d/%02d %2d:%02d:%02d\n", year, month, day, hour, minute, second);
     }
 }
 
-void printDirInfo(char* dirname, char* fp){
+int filenameMatch(char *fp, uint8_t *subdirname, int ndx){
+    if((fp[ndx] & 5) != 5) return 0;
+    int x = 0;
+    for(x=0; x<31; x++){
+        if(subdirname[x] != fp[ndx+27+x]){
+            return 0;
+        }
+    }
+    return 1;
+}
+
+void printDirInfo(char* dirname, char* fp, int start, int end){
     if(dirname[0] == '/'){
         dirname++;
+        if(dirname[0] == '\0'){
+            printFileInfo(fp, start, end);
+            return;
+        }
         int i = 0;
-        char tempbuf[255];
+        uint8_t tempbuf[31];
         while(dirname[0]  != '/' && dirname[0] != '\0'){
             tempbuf[i++] = dirname[0];
             dirname++;
         }
-        tempbuf[i] = '\0';
-        printf("%s\n", tempbuf);
-        printf("%s\n\n", dirname);
-        printDirInfo(dirname, fp);
-    }else if(dirname[0] == '\0'){
-        printf("END OF DIRNAME\n");
+        while(i<31){
+            tempbuf[i++] = 0;
+        }
+        for(i=start; i<end; i+=64){
+            if(filenameMatch(fp, tempbuf, i)){
+                uint32_t startb = fourbfield(fp, i+1);
+                uint32_t dirsizeb = fourbfield(fp, i+9);
+                if(dirname[0] == '\0'){
+                    printFileInfo(fp, startb*SB.block_size, (startb+dirsizeb)*SB.block_size);
+                }else{
+                    printDirInfo(dirname, fp, startb*SB.block_size, (startb+dirsizeb)*SB.block_size);
+                }
+                return;
+            }
+        }
+        fprintf(stderr, "Could not locate directory.\n");
     }else{
         fprintf(stderr, "Specify directory of format: /subdir/subdir/subdir\n");
         exit(1);
     }
-    // int end = (SB.rootstart+SB.root_block_count)*SB.block_size;
-    // int start = SB.rootstart*SB.block_size;
-    // printFileInfo(fp, start, end);
+
 }
 #endif
 
@@ -162,7 +185,7 @@ int main(int argc, char* argv[]){
         if(argc == 2) printDiskInfo();
         else fprintf(stderr, "USAGE: ./diskinfo [disk img]\n");
     #elif defined(PART2)
-        if(argc == 3) printDirInfo(argv[2], p);
+        if(argc == 3) printDirInfo(argv[2], p, SB.rootstart*SB.block_size, (SB.rootstart+SB.root_block_count)*SB.block_size);
         else fprintf(stderr, "USAGE: ./disklist [disk img] [directory]\n");
     #elif defined(PART3)
         // int i;
