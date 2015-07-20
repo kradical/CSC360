@@ -47,10 +47,10 @@ uint8_t onebfield(char *fp, int ndx){
 void putFile(char *ifile, char *olocation, char *fp){
     int ifp;
     struct stat sf;
-    char *p;
+    //char *p;
     if((ifp = open(ifile, O_RDONLY)) >= 0){
         fstat(ifp, &sf);
-        p = mmap(NULL, sf.st_size, PROT_READ, MAP_SHARED, ifp, 0);
+        //p = mmap(NULL, sf.st_size, PROT_READ, MAP_SHARED, ifp, 0);
     }else{
         fprintf(stderr, "Can't open file.\n");
         close(ifp);
@@ -61,23 +61,19 @@ void putFile(char *ifile, char *olocation, char *fp){
 #endif
 
 #if defined(PART3)
-void transferFile(char *fp, char *filename, uint32_t filesize, int start){
+void transferFile(char *fp, char *filename, uint32_t filesizeb, int startb){
     FILE *new;
     new = fopen(filename, "wb");
-    fwrite(fp+start, filesize, 1, new);
+    // fwrite(fp+start, filesize, 1, new);
+    printf("%d, %d\n", startb, filesizeb);
 }
 
-int filenameMatch(char *fp, char *subdirname, int ndx){
-    int x;
-    for(x=0; x<FILENAMELIM; x++){
-        if(subdirname[x] != fp[ndx+27+x]){
-            return 0;
-        }
-    }
-    return 1;
+int fileNameMatch(char *fp, char *subdirname, int ndx){
+    if((fp[ndx] & 3) != 3) return 0;
+    return !strcmp(subdirname, fp+27+ndx);
 }
 
-void getFile(char* dirname, char* fp, int start, int end){
+void getFile(char* dirname, char* fp, int start, int numblocks, char *filename){
     if(dirname[0] == '/'){
         dirname++;
         if(dirname[0] == '\0'){
@@ -90,70 +86,80 @@ void getFile(char* dirname, char* fp, int start, int end){
             tempbuf[i++] = dirname[0];
             dirname++;
         }
-        while(i<FILENAMELIM){
-            tempbuf[i++] = 0;
-        }
-        for(i=start; i<end; i+=64){
-            if(filenameMatch(fp, tempbuf, i)){
-                uint32_t startb = fourbfield(fp, i+1);
-                uint32_t dirsizeb = fourbfield(fp, i+5);
-                if(dirname[0] == '\0'){
-                    uint32_t filesize = fourbfield(fp, i+9);
-                    if((fp[i]&3) == 3) transferFile(fp, tempbuf, filesize, startb*SB.block_size);
-                    else fprintf(stderr, "File not found.\n");
-                }else{
-                    getFile(dirname, fp, startb*SB.block_size, (startb+dirsizeb)*SB.block_size);
+        tempbuf[i] = '\0';
+        uint32_t nextblock = start;
+        for(i=0; i<numblocks*SB.block_size; i+=64){
+            if(i%SB.block_size == 0 && i != 0){
+                nextblock = fourbfield(fp, SB.FATstart*SB.block_size + 4*(nextblock-1));
+                if(nextblock == 0xFFFFFFFF){
+                    fprintf(stderr, "File not found.\n");
+                    return;
                 }
-                return;
+            }
+            if(fileNameMatch(fp, tempbuf, i+nextblock*SB.block_size)){
+                uint32_t startb = fourbfield(fp, i+nextblock*SB.block_size+1);
+                uint32_t dirsizeb = fourbfield(fp, i+nextblock*SB.block_size+5);
+                if(dirname[0] == '\0'){
+                    if((fp[i+nextblock*SB.block_size]&3)==3){
+                        transferFile(fp, filename, dirsizeb, startb);
+                        return;
+                    }
+                }else{
+                    getFile(dirname, fp, startb, dirsizeb, filename);
+                    return;
+                }
             }
         }
-        fprintf(stderr, "File not found.\n");
     }else{
         fprintf(stderr, "Input format: /subdir/subdir/filename\n");
         exit(1);
     }
-
 }
 #endif
 
 #if defined(PART2)
-void printFileInfo(char* fp, int start, int end){
+void printFileInfo(char* fp, int start, int numblocks){
     int i;
-    for(i=start;i<end;i+=64){
-        if((fp[i] & 3) == 3){
+    uint32_t nextblock = start;
+    for(i=0;i<numblocks*SB.block_size;i+=64){
+        if(i%SB.block_size == 0 && i != 0){
+            nextblock = fourbfield(fp, SB.FATstart*SB.block_size + 4*(nextblock-1));
+            if(nextblock == 0xFFFFFFFF)return;
+        }
+        if((fp[i+nextblock*SB.block_size] & 3) == 3){
             printf("F ");
-        }else if((fp[i] & 7) == 5){
+        }else if((fp[i+nextblock*SB.block_size] & 7) == 5){
             printf("D ");
         }else{
             continue;
         }
-        uint32_t filesize = fourbfield(fp, i+9);
+        uint32_t filesize = fourbfield(fp, i+nextblock*SB.block_size+9);
         char filename[FILENAMELIM];
         int x = 0;
         for(x=0; x<FILENAMELIM; x++){
-            filename[x] = fp[i+27+x];
+            filename[x] = fp[i+27+nextblock*SB.block_size+x];
         }
-        uint16_t year = twobfield(fp, i+20);
-        uint8_t month = onebfield(fp, i+22);
-        uint8_t day = onebfield(fp, i+23);
-        uint8_t hour = onebfield(fp, i+24);
-        uint8_t minute = onebfield(fp, i+25);
-        uint8_t second = onebfield(fp, i+26);
+        uint16_t year = twobfield(fp, i+nextblock*SB.block_size+20);
+        uint8_t month = onebfield(fp, i+nextblock*SB.block_size+22);
+        uint8_t day = onebfield(fp, i+nextblock*SB.block_size+23);
+        uint8_t hour = onebfield(fp, i+nextblock*SB.block_size+24);
+        uint8_t minute = onebfield(fp, i+nextblock*SB.block_size+25);
+        uint8_t second = onebfield(fp, i+nextblock*SB.block_size+26);
         printf("%10d %30s ", filesize, filename);
         printf("%4d/%02d/%02d %2d:%02d:%02d\n", year, month, day, hour, minute, second);
     }
 }
 
 int dirNameMatch(char *fp, char *subdirname, int ndx){
-    if((fp[ndx] & 5) != 5) return 0;
-    return strcmp(subdirname, fp+ndx+27);
+    if((fp[ndx] & 7) != 5) return 0;
+    return !strcmp(subdirname, fp+27+ndx);
 }
 
-void printDirInfo(char* dirname, char* fp, int start, int end){
+void printDirInfo(char* dirname, char* fp, int start, int numblocks){
     if(dirname[0] == '/'){
         dirname++;
         if(dirname[0] == '\0'){
-            printFileInfo(fp, start, end);
+            printFileInfo(fp, start, numblocks);
             return;
         }
         int i = 0;
@@ -163,24 +169,29 @@ void printDirInfo(char* dirname, char* fp, int start, int end){
             dirname++;
         }
         tempbuf[i] = '\0';
-        for(i=start; i<end; i+=64){
-            if(dirNameMatch(fp, tempbuf, i)){
-                uint32_t startb = fourbfield(fp, i+1);
-                uint32_t dirsizeb = fourbfield(fp, i+5);
-                if(dirname[0] == '\0'){
-                    printFileInfo(fp, startb, (startb+dirsizeb)*SB.block_size);
-                }else{
-                    printDirInfo(dirname, fp, startb*SB.block_size, (startb+dirsizeb)*SB.block_size);
+        uint32_t nextblock = start;
+        for(i=0; i<numblocks*SB.block_size; i+=64){
+            if(i%SB.block_size == 0 && i != 0){
+                nextblock = fourbfield(fp, SB.FATstart*SB.block_size + 4*(nextblock-1));
+                if(nextblock == 0xFFFFFFFF){
+                    fprintf(stderr, "Directory not found.\n");
+                    return;
                 }
-                return;
+            }
+            if(dirNameMatch(fp, tempbuf, i+nextblock*SB.block_size)){
+                uint32_t startb = fourbfield(fp, i+nextblock*SB.block_size+1);
+                uint32_t dirsizeb = fourbfield(fp, i+nextblock*SB.block_size+5);
+                if(dirname[0] == '\0'){
+                    printFileInfo(fp, startb, dirsizeb);
+                }else{
+                    printDirInfo(dirname, fp, startb, dirsizeb);
+                }
             }
         }
-        fprintf(stderr, "Directory not found.\n");
     }else{
         fprintf(stderr, "Input format: /subdir/subdir/subdir\n");
         exit(1);
     }
-
 }
 #endif
 
@@ -251,11 +262,11 @@ int main(int argc, char* argv[]){
         if(argc == 2) printDiskInfo();
         else fprintf(stderr, "USAGE: ./diskinfo [disk img]\n");
     #elif defined(PART2)
-        if(argc == 3) printDirInfo(argv[2], p, SB.rootstart*SB.block_size, (SB.rootstart+SB.root_block_count)*SB.block_size);
+        if(argc == 3) printDirInfo(argv[2], p, SB.rootstart, SB.root_block_count);
         else fprintf(stderr, "USAGE: ./disklist [disk img] [directory]\n");
     #elif defined(PART3)
-        if(argc == 3) getFile(argv[2], p, SB.rootstart*SB.block_size, (SB.rootstart+SB.root_block_count)*SB.block_size);
-        else fprintf(stderr, "USAGE: ./diskget [disk img] [filename]\n");
+        if(argc == 4) getFile(argv[2], p, SB.rootstart, SB.root_block_count, argv[3]);
+        else fprintf(stderr, "USAGE: ./diskget [disk img] [file in disk] [local copy name]\n");
     #elif defined(PART4)
         if(argc == 4) putFile(argv[2], argv[3], p);
         else fprintf(stderr, "USAGE: ./diskput [disk img] [local filename] [disk directory]\n");
