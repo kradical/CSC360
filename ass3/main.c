@@ -45,7 +45,18 @@ uint8_t onebfield(char *fp, int ndx){
 
 #if defined(PART4)
 void putFile(char *ifile, char *olocation, char *fp){
-    printf("%s\n", ifile);
+    int ifp;
+    struct stat sf;
+    char *p;
+    if((ifp = open(ifile, O_RDONLY)) >= 0){
+        fstat(ifp, &sf);
+        p = mmap(NULL, sf.st_size, PROT_READ, MAP_SHARED, ifp, 0);
+    }else{
+        fprintf(stderr, "Can't open file.\n");
+        close(ifp);
+        exit(1);
+    }
+    printf("%d", (int)sf.st_size);
 }
 #endif
 
@@ -111,7 +122,7 @@ void printFileInfo(char* fp, int start, int end){
     for(i=start;i<end;i+=64){
         if((fp[i] & 3) == 3){
             printf("F ");
-        }else if((fp[i] & 5) == 5){
+        }else if((fp[i] & 7) == 5){
             printf("D ");
         }else{
             continue;
@@ -135,13 +146,7 @@ void printFileInfo(char* fp, int start, int end){
 
 int dirNameMatch(char *fp, char *subdirname, int ndx){
     if((fp[ndx] & 5) != 5) return 0;
-    int x = 0;
-    for(x=0; x<FILENAMELIM; x++){
-        if(subdirname[x] != fp[ndx+27+x]){
-            return 0;
-        }
-    }
-    return 1;
+    return strcmp(subdirname, fp+ndx+27);
 }
 
 void printDirInfo(char* dirname, char* fp, int start, int end){
@@ -157,15 +162,13 @@ void printDirInfo(char* dirname, char* fp, int start, int end){
             tempbuf[i++] = dirname[0];
             dirname++;
         }
-        while(i<FILENAMELIM){
-            tempbuf[i++] = 0;
-        }
+        tempbuf[i] = '\0';
         for(i=start; i<end; i+=64){
             if(dirNameMatch(fp, tempbuf, i)){
                 uint32_t startb = fourbfield(fp, i+1);
                 uint32_t dirsizeb = fourbfield(fp, i+5);
                 if(dirname[0] == '\0'){
-                    printFileInfo(fp, startb*SB.block_size, (startb+dirsizeb)*SB.block_size);
+                    printFileInfo(fp, startb, (startb+dirsizeb)*SB.block_size);
                 }else{
                     printDirInfo(dirname, fp, startb*SB.block_size, (startb+dirsizeb)*SB.block_size);
                 }
@@ -235,11 +238,11 @@ int main(int argc, char* argv[]){
         fprintf(stderr, "Must specify a disc image.");
         exit(1);
     }
-    if((fp = open(disk_name, O_RDONLY)) >= 0){
+    if((fp = open(disk_name, O_RDWR)) >= 0){
         fstat(fp, &sf);
         p = mmap(NULL, sf.st_size, PROT_READ, MAP_SHARED, fp, 0);
     }else{
-        fprintf(stderr, "Can't open file.\n");
+        fprintf(stderr, "Can't open disk file.\n");
         close(fp);
         exit(1);
     }
