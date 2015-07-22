@@ -28,8 +28,26 @@ struct FAT_t{
     uint32_t allocated;
 };
 
+struct datetime_t{
+    uint16_t year;
+    uint8_t month;
+    uint8_t day;
+    uint8_t hour;
+    uint8_t min;
+    uint8_t sec;
+};
+
 struct superblock_t SB;
 struct FAT_t FB;
+
+void *try_malloc(unsigned long int size){
+    void *p = malloc(size); 
+    if(p == NULL){
+        perror("Error allocating memory");
+        exit(1);
+    }
+    return p;
+}
 
 uint32_t fourbfield(char *fp, int ndx){
     return ((fp[ndx]&0xFF)<<24) + ((fp[ndx+1]&0xFF)<<16) + ((fp[ndx+2]&0xFF)<<8) + (fp[ndx+3]&0xFF);
@@ -44,28 +62,79 @@ uint8_t onebfield(char *fp, int ndx){
 }
 
 #if defined(PART4)
+void getCurrentTime(struct datetime_t *timeb){
+    struct tm *UTCtime;
+    time_t now = time(0);
+    UTCtime = gmtime(&now);
+    timeb->sec = (UTCtime->tm_sec);
+    timeb->min = (UTCtime->tm_min);
+    timeb->hour = ((UTCtime->tm_hour+17)%24);
+    timeb->day = (UTCtime->tm_mday);
+    timeb->month = (UTCtime->tm_mon+1);
+    timeb->year = ((UTCtime->tm_year+1900));
+}
+
+void writeFileContents(char *disk, char *inputfile, uint32_t filesize){
+    uint32_t numblocks = filesize/SB.block_size + 1;
+    uint32_t i;
+    uint32_t j = SB.FATstart*SB.block_size;
+    uint32_t FATaddresses[numblocks-1];
+    for(i=0;i<numblocks-1;i++){
+        while(fourbfield(disk, j) != 0){
+            j += 4;
+        }
+        FATaddresses[i] = j;
+        uint32_t writeblock = (j-SB.FATstart*SB.block_size)/4*SB.block_size;
+        printf("write block to %X\n", writeblock);
+        memcpy(disk+writeblock, inputfile+i*SB.block_size, SB.block_size);
+        j += 4;
+    }
+}
+
 void putFile(char *ifile, char *olocation, char *fp){
     int ifp;
     struct stat sf;
-    //char *p;
+    char *p;
     if((ifp = open(ifile, O_RDONLY)) >= 0){
         fstat(ifp, &sf);
-        //p = mmap(NULL, sf.st_size, PROT_READ, MAP_SHARED, ifp, 0);
+        p = mmap(NULL, sf.st_size, PROT_READ, MAP_SHARED, ifp, 0);
     }else{
         fprintf(stderr, "Can't open file.\n");
         close(ifp);
         exit(1);
     }
-    printf("%d", (int)sf.st_size);
+    writeFileContents(fp, p, (uint32_t)sf.st_size);
+    struct datetime_t *timeb = try_malloc(sizeof(struct datetime_t));
+    getCurrentTime(timeb);
+    printf("\nStatus %X\n", 0x3);
+    printf("Starting Block \n");
+    printf("Number of Blocks %d\n", (int)sf.st_size/SB.block_size+1);
+    printf("File size %d\n", (int)sf.st_size);
+    printf("Create/modify time %4d/%02d/%02d %2d:%02d:%02d\n", timeb->year, timeb->month, timeb->day, timeb->hour, timeb->min, timeb->sec);
+    printf("Filename %s\n", ifile);
 }
 #endif
 
 #if defined(PART3)
-void transferFile(char *fp, char *filename, uint32_t filesizeb, int startb){
+void transferFile(char *fp, char *filename, uint32_t filesizeblk, uint32_t filesize, uint32_t startblk){
     FILE *new;
-    new = fopen(filename, "wb");
-    // fwrite(fp+start, filesize, 1, new);
-    printf("%d, %d\n", startb, filesizeb);
+    if((new = fopen(filename, "wb")) < 0){
+        fprintf(stderr, "Can't open disk file.\n");
+        fclose(new);
+        exit(1);
+    }
+    int i;
+    uint32_t nextblock = startblk;
+    for(i=0; i<filesizeblk-1; i++){
+        if(nextblock == 0xFFFFFFFF){
+            fprintf(stderr, "End of file detected corrupt file.");
+            exit(1);
+        }
+        fwrite(fp+nextblock*SB.block_size, SB.block_size, 1, new);
+        nextblock = fourbfield(fp, SB.FATstart*SB.block_size + 4*(nextblock));
+    }
+    uint32_t remainingbytes = filesize%SB.block_size==0 ? SB.block_size : filesize%SB.block_size;
+    fwrite(fp+nextblock*SB.block_size, remainingbytes, 1, new);
 }
 
 int fileNameMatch(char *fp, char *subdirname, int ndx){
@@ -90,22 +159,23 @@ void getFile(char* dirname, char* fp, int start, int numblocks, char *filename){
         uint32_t nextblock = start;
         for(i=0; i<numblocks*SB.block_size; i+=64){
             if(i%SB.block_size == 0 && i != 0){
-                nextblock = fourbfield(fp, SB.FATstart*SB.block_size + 4*(nextblock-1));
+                nextblock = fourbfield(fp, SB.FATstart*SB.block_size + 4*(nextblock));//removed a (nextblock-1) here, put it back if everything breaks
                 if(nextblock == 0xFFFFFFFF){
                     fprintf(stderr, "File not found.\n");
                     return;
                 }
             }
             if(fileNameMatch(fp, tempbuf, i+nextblock*SB.block_size)){
-                uint32_t startb = fourbfield(fp, i+nextblock*SB.block_size+1);
-                uint32_t dirsizeb = fourbfield(fp, i+nextblock*SB.block_size+5);
+                uint32_t startblk = fourbfield(fp, i+nextblock*SB.block_size+1);
+                uint32_t dirsizeblk = fourbfield(fp, i+nextblock*SB.block_size+5);
+                uint32_t filesize = fourbfield(fp, i+nextblock*SB.block_size+9);
                 if(dirname[0] == '\0'){
                     if((fp[i+nextblock*SB.block_size]&3)==3){
-                        transferFile(fp, filename, dirsizeb, startb);
+                        transferFile(fp, filename, dirsizeblk, filesize, startblk);
                         return;
                     }
                 }else{
-                    getFile(dirname, fp, startb, dirsizeb, filename);
+                    getFile(dirname, fp, startblk, dirsizeblk, filename);
                     return;
                 }
             }
@@ -251,7 +321,7 @@ int main(int argc, char* argv[]){
     }
     if((fp = open(disk_name, O_RDWR)) >= 0){
         fstat(fp, &sf);
-        p = mmap(NULL, sf.st_size, PROT_READ, MAP_SHARED, fp, 0);
+        p = mmap(NULL, sf.st_size, PROT_READ | PROT_WRITE, MAP_SHARED, fp, 0);
     }else{
         fprintf(stderr, "Can't open disk file.\n");
         close(fp);
